@@ -56,12 +56,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/**
- * Custom composable to draw a semicircular progress bar (gauge).
- *
- * @param speed The current speed value to display progress for.
- * @param maxSpeed The maximum value for the gauge (100% progress).
- */
+
 @Composable
 fun SemiCircleSpeedGauge(
     speed: Double,
