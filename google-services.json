@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "486364987918",
+    "project_id": "ev-thenderboltz",
+    "storage_bucket": "ev-thenderboltz.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:486364987918:android:6f5e9bbc765c25a54af25f",
+        "android_client_info": {
+          "package_name": "com.example.thunderboltz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjHHNcEH00v7XEmwYC1Hl_gBxupH3LmNI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
