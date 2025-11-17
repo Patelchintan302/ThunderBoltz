@@ -10,10 +10,13 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -48,6 +51,9 @@ class MainActivity : ComponentActivity() {
             ThunderBoltzTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Speed(
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                    Battry(
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
@@ -121,7 +127,7 @@ fun Speed(modifier: Modifier = Modifier) {
 
     LaunchedEffect(Unit) {
         try {
-            db.collection("Collection").document("Speed")
+            db.collection("Collection").document("Status")
                 .addSnapshotListener { documentSnapshot, error ->
                     if (error != null) {
                         speedText = "Error: ${error.message}"
@@ -131,7 +137,7 @@ fun Speed(modifier: Modifier = Modifier) {
 
                     if (documentSnapshot != null && documentSnapshot.exists()) {
                         // FIX: Safely retrieve the field value as a Number to prevent crashes.
-                        val firestoreValue = documentSnapshot.get("speed")
+                        val firestoreValue = documentSnapshot.get("Speed")
 
                         // Safely convert to Double. If null or wrong type (like a String), defaults to 0.0
                         val newSpeedValue = (firestoreValue as? Number)?.toDouble() ?: 0.0
@@ -172,18 +178,190 @@ fun Speed(modifier: Modifier = Modifier) {
             )
 
             // 2. Digital Speed Display (Foreground Layer, centered visually)
-            Text(
-                text = speedText,
-                fontSize = 50.sp, // Reduced size for better fit
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-                // Shift the text up into the visual center of the semi-circle
+//            Row{
+//                Text(
+//                    text = speedText,
+//                    fontSize = 70.sp, // Reduced size for better fit
+//                    fontWeight = FontWeight.Bold,
+//                    color = MaterialTheme.colorScheme.primary,
+//                    textAlign = TextAlign.Center,
+//                    // Shift the text up into the visual center of the semi-circle
+//                    modifier = Modifier.offset(y = (-60).dp)
+//                )
+//                Text(
+//                    text = "km/h",
+//                    fontSize = 30.sp,
+//                    modifier = Modifier.offset(y = (-60).dp)
+//                )
+//            }
+
+            Row(
+                // 💡 Key Change 1: Align the contents of the Row vertically to ensure "km/h" is centered with the speed number
+                verticalAlignment = Alignment.CenterVertically,
+                // 💡 Key Change 2: Apply the vertical shift (offset) to the parent Row container
                 modifier = Modifier.offset(y = (-60).dp)
-            )
+            ) {
+                Text(
+                    text = speedText,
+                    fontSize = 70.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                    // ❌ Removed: Fixed vertical offset (y = -60.dp)
+                )
+                // Add some horizontal space between the number and the unit
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "km/h",
+                    fontSize = 30.sp,
+                    // ❌ Removed: Fixed vertical offset (y = -60.dp)
+                )
+            }
         }
 
 
+    }
+}
+
+
+@Composable
+fun CircleBattryGauge(
+    battry: Double,
+    modifier: Modifier = Modifier,
+    size: Dp,
+    strokeWidth: Dp = 20.dp,
+    color: Color = MaterialTheme.colorScheme.primary
+) {
+    // Calculate the percentage of battery relative to 100 and map it to 0-360 degrees.
+    val sweepAngle = ((battry / 100.0).coerceIn(0.0, 1.0) * 360.0).toFloat()
+
+    // Animate the sweep angle for a smooth transition.
+    val animatedSweepAngle by animateFloatAsState(
+        targetValue = sweepAngle,
+        animationSpec = tween(durationMillis = 800),
+        label = "BatteryGaugeAnimation"
+    )
+
+    Canvas(modifier = modifier.size(size)) {
+        val sweep = animatedSweepAngle
+        val strokeThickness = strokeWidth.toPx()
+        val padding = strokeThickness / 2f
+
+        // Size of the area where the arc is drawn (full circle bounding box)
+        val arcSize = Size(size.toPx() - strokeThickness, size.toPx() - strokeThickness)
+
+        // Start angle at 270f (the top/12 o'clock position) for a clockwise fill.
+        val startAngle = 270f
+
+        // 1. Draw the inactive track (the background FULL circle)
+        drawArc(
+            color = Color.LightGray.copy(alpha = 0.5f),
+            startAngle = startAngle,
+            sweepAngle = 360f, // Sweep a full circle
+            useCenter = false,
+            topLeft = Offset(padding, padding),
+            size = arcSize,
+            style = Stroke(strokeThickness, cap = StrokeCap.Round)
+        )
+
+        // 2. Draw the active progress (the battery arc)
+        drawArc(
+            color = color,
+            startAngle = startAngle,
+            sweepAngle = sweep, // Animated sweep angle
+            useCenter = false,
+            topLeft = Offset(padding, padding),
+            size = arcSize,
+            style = Stroke(strokeThickness, cap = StrokeCap.Round)
+        )
+    }
+}
+
+// --- 2. Battry Composable (Top Right Placement) ---
+
+@Composable
+fun Battry(modifier: Modifier = Modifier) {
+    // NOTE: Replace this placeholder with the actual FirebaseFirestore.getInstance()
+    // once you integrate this code into your Android project.
+    val db: Any = FirebaseFirestore.getInstance()
+
+    var battryText by remember { mutableStateOf("Loading...") }
+    var battryValue by remember { mutableDoubleStateOf(0.0) }
+
+    val gaugeSize = 80.dp // Define the size for the gauge
+
+    // Data fetching logic (Firebase Firestore)
+    LaunchedEffect(Unit) {
+        // NOTE: The actual Firebase listener code needs to be adapted to your project's
+        // Firebase types and context. This section is a structural placeholder.
+        try {
+            (db as FirebaseFirestore).collection("Collection").document("Status")
+                .addSnapshotListener { documentSnapshot, error ->
+                    if (error != null) {
+                        battryText = "Error: ${error.message}"
+                        battryValue = 0.0
+                        return@addSnapshotListener
+                    }
+
+                    if (documentSnapshot != null && documentSnapshot.exists()) {
+                        val firestoreValue = documentSnapshot.get("Battry")
+                        val newBattryValue = (firestoreValue as? Number)?.toDouble() ?: 0.0
+
+                        battryValue = newBattryValue
+                        battryText = "${newBattryValue.toInt()}"
+                    } else {
+                        battryText = "Document Missing"
+                        battryValue = 0.0
+                    }
+                }
+        } catch (e: Exception) {
+            battryText = "Failed to listen: ${e.message}"
+            battryValue = 0.0
+        }
+
+        // Placeholder for immediate testing without Firebase
+        battryValue = 75.0 // Example initial value
+        battryText = "75"
+    }
+
+    // 💡 Outer Box for Top-Right placement
+    Box(
+        modifier = modifier
+            .fillMaxSize() // Fills the entire screen
+            .padding(16.dp), // Padding from the screen edges
+        contentAlignment = Alignment.TopEnd // Aligns content to the Top Right
+    ) {
+        // Inner Box to stack the Gauge and the Text
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(gaugeSize)
+        ) {
+            // 1. Circular Gauge (Background Layer)
+            // --- Dynamic Color Definitions ---
+            val RedBattery = Color(0xFFE53935)     // Red for 0-9%
+            val YellowBattery = Color(0xFFFFEB3B)  // Yellow for 10-19%
+            val GreenBattery = Color(0xFF4CAF50)    // Green for 20-100%
+            val battryColor = when (battryValue) {
+                in 0.0..9.0 -> RedBattery
+                in 10.0..19.0 -> YellowBattery
+                else -> GreenBattery
+            }
+            CircleBattryGauge(
+                battry = battryValue,
+                size = gaugeSize,
+                strokeWidth = 10.dp,
+                color = battryColor
+            )
+
+            // 2. Digital Battery Display (Foreground Layer, Centered)
+            Text(
+                text = battryText,
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Bold,
+                color = battryColor,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 
@@ -192,6 +370,8 @@ fun Speed(modifier: Modifier = Modifier) {
 fun Preview() {
     ThunderBoltzTheme {
         // Preview the main composable
-        Speed(modifier = Modifier.padding(3.dp))
+        androidx.compose.material3.Surface { // Surface provides background and elevation context
+            Battry()
+        }
     }
 }
