@@ -338,9 +338,9 @@ fun Battry(modifier: Modifier = Modifier) {
         ) {
             // 1. Circular Gauge (Background Layer)
             // --- Dynamic Color Definitions ---
-            val RedBattery = Color(0xFFE53935)     // Red for 0-9%
-            val YellowBattery = Color(0xFFFFEB3B)  // Yellow for 10-19%
-            val GreenBattery = Color(0xFF4CAF50)    // Green for 20-100%
+            val RedBattery = Color(0xFFF56662)     // Red for 0-9%
+            val YellowBattery = Color(0xFFE7DA69)  // Yellow for 10-19%
+            val GreenBattery = Color(0xFF70E174)    // Green for 20-100%
             val battryColor = when (battryValue) {
                 in 0.0..9.0 -> RedBattery
                 in 10.0..19.0 -> YellowBattery
