@@ -177,23 +177,7 @@ fun Speed(modifier: Modifier = Modifier) {
                 size = gaugeSize,
             )
 
-            // 2. Digital Speed Display (Foreground Layer, centered visually)
-//            Row{
-//                Text(
-//                    text = speedText,
-//                    fontSize = 70.sp, // Reduced size for better fit
-//                    fontWeight = FontWeight.Bold,
-//                    color = MaterialTheme.colorScheme.primary,
-//                    textAlign = TextAlign.Center,
-//                    // Shift the text up into the visual center of the semi-circle
-//                    modifier = Modifier.offset(y = (-60).dp)
-//                )
-//                Text(
-//                    text = "km/h",
-//                    fontSize = 30.sp,
-//                    modifier = Modifier.offset(y = (-60).dp)
-//                )
-//            }
+
 
             Row(
                 // 💡 Key Change 1: Align the contents of the Row vertically to ensure "km/h" is centered with the speed number
@@ -207,14 +191,12 @@ fun Speed(modifier: Modifier = Modifier) {
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
-                    // ❌ Removed: Fixed vertical offset (y = -60.dp)
                 )
                 // Add some horizontal space between the number and the unit
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "km/h",
                     fontSize = 30.sp,
-                    // ❌ Removed: Fixed vertical offset (y = -60.dp)
                 )
             }
         }
