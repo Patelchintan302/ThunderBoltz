@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.example.thunderboltz.ui.theme.ThunderBoltzTheme
 import com.google.firebase.firestore.FirebaseFirestore
 
+// --- MainActivity Class ---
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +51,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             ThunderBoltzTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    // All three main components integrated here:
+                    Indicator(
+                        modifier = Modifier.padding(innerPadding)
+                    )
                     Speed(
                         modifier = Modifier.padding(innerPadding)
                     )
@@ -62,6 +67,9 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// -----------------------------------------------------------------------------------
+// --- 1. Speed Gauge Composable (Center Screen) ---
+// -----------------------------------------------------------------------------------
 
 @Composable
 fun SemiCircleSpeedGauge(
@@ -72,7 +80,7 @@ fun SemiCircleSpeedGauge(
     strokeWidth: Dp = 20.dp,
     color: Color = MaterialTheme.colorScheme.primary
 ) {
-    // Calculate the percentage of speed relative to the max speed and map it to 0-180 degrees.
+    // Calculate the percentage of speed and map it to 0-180 degrees.
     val sweepAngle = ((speed / maxSpeed).coerceIn(0.0, 1.0) * 180).toFloat()
 
     // Animate the sweep angle for a smooth transition.
@@ -87,14 +95,13 @@ fun SemiCircleSpeedGauge(
         val strokeThickness = strokeWidth.toPx()
         val padding = strokeThickness / 2f
 
-        // Size of the area where the arc is drawn (full circle bounding box)
         val arcSize = Size(size.toPx() - strokeThickness, size.toPx() - strokeThickness)
 
         // 1. Draw the inactive track (the background arc)
         drawArc(
             color = Color.LightGray.copy(alpha = 0.5f),
-            startAngle = 180f, // Start at the left horizontal axis
-            sweepAngle = 180f, // Sweep half a circle
+            startAngle = 180f,
+            sweepAngle = 180f,
             useCenter = false,
             topLeft = Offset(padding, padding),
             size = arcSize,
@@ -104,8 +111,8 @@ fun SemiCircleSpeedGauge(
         // 2. Draw the active progress (the speed arc)
         drawArc(
             color = color,
-            startAngle = 180f, // Start at the left horizontal axis
-            sweepAngle = sweep, // Animated sweep angle
+            startAngle = 180f,
+            sweepAngle = sweep,
             useCenter = false,
             topLeft = Offset(padding, padding),
             size = arcSize,
@@ -118,12 +125,11 @@ fun SemiCircleSpeedGauge(
 @Composable
 fun Speed(modifier: Modifier = Modifier) {
     val db: FirebaseFirestore = FirebaseFirestore.getInstance()
-    var speedText by remember { mutableStateOf("Loading...") }
+    var speedText by remember { mutableStateOf("0") }
     var speedValue by remember { mutableDoubleStateOf(0.0) }
 
-    // Define the max speed for the gauge
     val maxSpeed = 150.0
-    val gaugeSize = 250.dp // Define the size for the gauge
+    val gaugeSize = 250.dp
 
     LaunchedEffect(Unit) {
         try {
@@ -136,14 +142,10 @@ fun Speed(modifier: Modifier = Modifier) {
                     }
 
                     if (documentSnapshot != null && documentSnapshot.exists()) {
-                        // FIX: Safely retrieve the field value as a Number to prevent crashes.
                         val firestoreValue = documentSnapshot.get("Speed")
-
-                        // Safely convert to Double. If null or wrong type (like a String), defaults to 0.0
                         val newSpeedValue = (firestoreValue as? Number)?.toDouble() ?: 0.0
 
                         speedValue = newSpeedValue
-                        // Format the number for display (e.g., "123.4")
                         speedText = newSpeedValue.toInt().toString()
                     } else {
                         speedText = "Document Missing"
@@ -162,27 +164,21 @@ fun Speed(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center
     ) {
 
-        // Use a Box to stack the Gauge and the Text in the center
         Box(
-            // Use BottomCenter to ensure the semi-circle aligns correctly
             contentAlignment = Alignment.BottomCenter,
             modifier = Modifier
-                .size(gaugeSize) // Set the box size to match the gauge
+                .size(gaugeSize)
                 .padding(bottom = 32.dp)
         ) {
-            // 1. Semi-Circular Gauge (Background Layer)
+            // 1. Semi-Circular Gauge
             SemiCircleSpeedGauge(
                 speed = speedValue,
                 maxSpeed = maxSpeed,
                 size = gaugeSize,
             )
 
-
-
             Row(
-                // 💡 Key Change 1: Align the contents of the Row vertically to ensure "km/h" is centered with the speed number
                 verticalAlignment = Alignment.CenterVertically,
-                // 💡 Key Change 2: Apply the vertical shift (offset) to the parent Row container
                 modifier = Modifier.offset(y = (-60).dp)
             ) {
                 Text(
@@ -192,7 +188,6 @@ fun Speed(modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
                 )
-                // Add some horizontal space between the number and the unit
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "km/h",
@@ -200,11 +195,12 @@ fun Speed(modifier: Modifier = Modifier) {
                 )
             }
         }
-
-
     }
 }
 
+// -----------------------------------------------------------------------------------
+// --- 2. Battery Gauge Composable (Top Right) ---
+// -----------------------------------------------------------------------------------
 
 @Composable
 fun CircleBattryGauge(
@@ -214,7 +210,7 @@ fun CircleBattryGauge(
     strokeWidth: Dp = 20.dp,
     color: Color = MaterialTheme.colorScheme.primary
 ) {
-    // Calculate the percentage of battery relative to 100 and map it to 0-360 degrees.
+    // Calculate the percentage of battery and map it to 0-360 degrees.
     val sweepAngle = ((battry / 100.0).coerceIn(0.0, 1.0) * 360.0).toFloat()
 
     // Animate the sweep angle for a smooth transition.
@@ -229,17 +225,14 @@ fun CircleBattryGauge(
         val strokeThickness = strokeWidth.toPx()
         val padding = strokeThickness / 2f
 
-        // Size of the area where the arc is drawn (full circle bounding box)
         val arcSize = Size(size.toPx() - strokeThickness, size.toPx() - strokeThickness)
-
-        // Start angle at 270f (the top/12 o'clock position) for a clockwise fill.
         val startAngle = 270f
 
         // 1. Draw the inactive track (the background FULL circle)
         drawArc(
             color = Color.LightGray.copy(alpha = 0.5f),
             startAngle = startAngle,
-            sweepAngle = 360f, // Sweep a full circle
+            sweepAngle = 360f,
             useCenter = false,
             topLeft = Offset(padding, padding),
             size = arcSize,
@@ -250,7 +243,7 @@ fun CircleBattryGauge(
         drawArc(
             color = color,
             startAngle = startAngle,
-            sweepAngle = sweep, // Animated sweep angle
+            sweepAngle = sweep,
             useCenter = false,
             topLeft = Offset(padding, padding),
             size = arcSize,
@@ -259,25 +252,19 @@ fun CircleBattryGauge(
     }
 }
 
-// --- 2. Battry Composable (Top Right Placement) ---
-
 @Composable
 fun Battry(modifier: Modifier = Modifier) {
-    // NOTE: Replace this placeholder with the actual FirebaseFirestore.getInstance()
-    // once you integrate this code into your Android project.
-    val db: Any = FirebaseFirestore.getInstance()
+    val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 
     var battryText by remember { mutableStateOf("Loading...") }
     var battryValue by remember { mutableDoubleStateOf(0.0) }
 
-    val gaugeSize = 80.dp // Define the size for the gauge
+    val gaugeSize = 80.dp
 
     // Data fetching logic (Firebase Firestore)
     LaunchedEffect(Unit) {
-        // NOTE: The actual Firebase listener code needs to be adapted to your project's
-        // Firebase types and context. This section is a structural placeholder.
         try {
-            (db as FirebaseFirestore).collection("Collection").document("Status")
+            db.collection("Collection").document("Status")
                 .addSnapshotListener { documentSnapshot, error ->
                     if (error != null) {
                         battryText = "Error: ${error.message}"
@@ -300,29 +287,24 @@ fun Battry(modifier: Modifier = Modifier) {
             battryText = "Failed to listen: ${e.message}"
             battryValue = 0.0
         }
-
-        // Placeholder for immediate testing without Firebase
-        battryValue = 75.0 // Example initial value
-        battryText = "75"
     }
 
-    // 💡 Outer Box for Top-Right placement
+    // Outer Box for Top-Right placement
     Box(
         modifier = modifier
-            .fillMaxSize() // Fills the entire screen
-            .padding(16.dp), // Padding from the screen edges
-        contentAlignment = Alignment.TopEnd // Aligns content to the Top Right
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.TopEnd
     ) {
         // Inner Box to stack the Gauge and the Text
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier.size(gaugeSize)
         ) {
-            // 1. Circular Gauge (Background Layer)
-            // --- Dynamic Color Definitions ---
-            val RedBattery = Color(0xFFF56662)     // Red for 0-9%
-            val YellowBattery = Color(0xFFE7DA69)  // Yellow for 10-19%
-            val GreenBattery = Color(0xFF70E174)    // Green for 20-100%
+            // Dynamic Color Definitions
+            val RedBattery = Color(0xFFF56662)
+            val YellowBattery = Color(0xFFE7DA69)
+            val GreenBattery = Color(0xFF70E174)
             val battryColor = when (battryValue) {
                 in 0.0..9.0 -> RedBattery
                 in 10.0..19.0 -> YellowBattery
@@ -335,7 +317,7 @@ fun Battry(modifier: Modifier = Modifier) {
                 color = battryColor
             )
 
-            // 2. Digital Battery Display (Foreground Layer, Centered)
+            // Digital Battery Display
             Text(
                 text = battryText,
                 fontSize = 25.sp,
@@ -347,13 +329,121 @@ fun Battry(modifier: Modifier = Modifier) {
     }
 }
 
+// -----------------------------------------------------------------------------------
+// --- 3. Indicator Composable (Bottom Center) ---
+// -----------------------------------------------------------------------------------
+
+@Composable
+fun Indicator(modifier: Modifier = Modifier) {
+    val db: FirebaseFirestore = FirebaseFirestore.getInstance()
+    var indicatorValue by remember { mutableDoubleStateOf(0.0) }
+
+    // State to hold the text to display below the arrow
+    var directionText by remember { mutableStateOf("") }
+
+    // Data Fetching (Firebase Firestore Listener)
+    LaunchedEffect(Unit) {
+        try {
+            db.collection("Collection").document("Status")
+                .addSnapshotListener { documentSnapshot, error ->
+                    if (error != null) {
+                        indicatorValue = 0.0
+                        directionText = "" // Clear text on error
+                        return@addSnapshotListener
+                    }
+
+                    if (documentSnapshot != null && documentSnapshot.exists()) {
+                        val firestoreValue = documentSnapshot.get("Indicator")
+                        val newValue = (firestoreValue as? Number)?.toDouble() ?: 0.0
+                        indicatorValue = newValue
+
+                        // Update the text based on the new value
+                        directionText = when (newValue.toInt()) {
+                            1 -> "RIGHT"
+                            -1 -> "LEFT"
+                            else -> ""
+                        }
+                    } else {
+                        indicatorValue = 0.0
+                        directionText = ""
+                    }
+                }
+        } catch (e: Exception) {
+            indicatorValue = 0.0
+            directionText = ""
+        }
+    }
+
+    // UI Placement (Centered at the bottom)
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(bottom = 32.dp),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        // Determine which arrow and color to use
+        val indicatorArrow: String
+        val color: Color
+
+        when (indicatorValue.toInt()) {
+            1 -> { // Right Indicator
+                indicatorArrow = "→"
+                color = Color.Green
+            }
+            -1 -> { // Left Indicator
+                indicatorArrow = "←"
+                color = Color.Green
+            }
+            else -> { // Off (0)
+                indicatorArrow = ""
+                color = Color.Transparent
+            }
+        }
+
+        // Display the Arrow and the Direction Text in a Column if active
+        if (indicatorArrow.isNotEmpty()) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // 1. Arrow Symbol
+                Text(
+                    text = indicatorArrow,
+                    fontSize = 100.sp,
+                    fontWeight = FontWeight.Black,
+                    color = color,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.width(200.dp)
+                )
+
+                // 2. Direction Text (New Addition)
+                Text(
+                    text = directionText,
+                    fontSize = 24.sp, // Slightly smaller font size
+                    fontWeight = FontWeight.Bold,
+                    color = color,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 4.dp) // Little space above the text
+                )
+            }
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------------
+// --- Preview Composable (for Android Studio) ---
+// -----------------------------------------------------------------------------------
+
 @Preview(showSystemUi = true)
 @Composable
 fun Preview() {
     ThunderBoltzTheme {
-        // Preview the main composable
-        androidx.compose.material3.Surface { // Surface provides background and elevation context
-            Battry()
+        // Preview the main composable setup
+        androidx.compose.material3.Surface(modifier = Modifier.fillMaxSize()) {
+            Scaffold { innerPadding ->
+                Indicator(modifier = Modifier.padding(innerPadding))
+                Speed(modifier = Modifier.padding(innerPadding))
+                Battry(modifier = Modifier.padding(innerPadding))
+            }
         }
     }
 }
