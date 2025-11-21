@@ -61,6 +61,9 @@ class MainActivity : ComponentActivity() {
                     Battry(
                         modifier = Modifier.padding(innerPadding)
                     )
+                    HeadlightIndicator(
+                        modifier = Modifier.padding(innerPadding)
+                    )
                 }
             }
         }
@@ -429,6 +432,73 @@ fun Indicator(modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+fun HeadlightIndicator(modifier: Modifier = Modifier) {
+    val db: FirebaseFirestore = FirebaseFirestore.getInstance()
+    var lightValue by remember { mutableDoubleStateOf(0.0) }
+
+    // Data Fetching (Firestore Listener)
+    LaunchedEffect(Unit) {
+        try {
+            db.collection("Collection").document("Status")
+                .addSnapshotListener { documentSnapshot, error ->
+                    if (error != null) {
+                        lightValue = 0.0
+                        return@addSnapshotListener
+                    }
+
+                    if (documentSnapshot != null && documentSnapshot.exists()) {
+                        val firestoreValue = documentSnapshot.get("Headlights")
+                        lightValue = (firestoreValue as? Number)?.toDouble() ?: 0.0
+                    } else {
+                        lightValue = 0.0
+                    }
+                }
+        } catch (e: Exception) {
+            lightValue = 0.0
+        }
+    }
+
+    // UI Placement (Centered at the top, below the Battery/Top Right)
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(top = 16.dp),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        val lightSymbol: String
+        val color: Color
+
+
+        when (lightValue.toInt()) {
+            2 -> { // High Beam
+                // Standard symbol for high beam (D with 5 horizontal lines)
+                lightSymbol = "\uD83D\uDCA3" // Using a symbol that might represent brightness/power
+                color = Color.Blue // Standard color for high beam indicator
+            }
+            1 -> { // Low Beam
+                // Standard symbol for low beam (semi-circle with 3 diagonal lines)
+                lightSymbol = "\uD83D\uDCA1" // Using a symbol that might represent light/low power
+                color = Color.Green // Common color for low beam indicator
+            }
+            else -> { // Off (0)
+                lightSymbol = ""
+                color = Color.Transparent
+            }
+        }
+
+        if (lightSymbol.isNotEmpty()) {
+            Text(
+                text = lightSymbol,
+                fontSize = 40.sp,
+                fontWeight = FontWeight.Bold,
+                color = color,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
 // -----------------------------------------------------------------------------------
 // --- Preview Composable (for Android Studio) ---
 // -----------------------------------------------------------------------------------
@@ -443,6 +513,8 @@ fun Preview() {
                 Indicator(modifier = Modifier.padding(innerPadding))
                 Speed(modifier = Modifier.padding(innerPadding))
                 Battry(modifier = Modifier.padding(innerPadding))
+                HeadlightIndicator(modifier = Modifier.padding(innerPadding))
+
             }
         }
     }
